@@ -1,5 +1,8 @@
 mod config;
 mod stats;
+mod network_interfaces;
+mod logs;
+mod error_handler;
 
 use config::Config;
 
@@ -7,20 +10,17 @@ use std::net::{ SocketAddr, UdpSocket};
 use std::io::Result;
 use std::os::unix::fs::MetadataExt;
 use std::thread::sleep;
+use sysinfo::{MemoryRefreshKind, Networks, RefreshKind};
+use crate::config::ConfigBuilder;
+use crate::error_handler::{ExitResult, ProgramResult};
 use crate::stats::Stats;
 
-fn main() -> Result<()> {
-    // Does the initial waiting if not started now.
-    let config = match Config::parse_args()? {
-        Some(c) => c,
-        None => return Ok(()) // Help called
+fn main() -> ExitResult {
+    let config = match ConfigBuilder::new().parse_args().unwrap() {
+        Some(c) => c.set_defaults().build().unwrap(),
+        None => return ExitResult::Ok
     };
-    // Create socket to stats server
-    let socket = UdpSocket::bind(
-        SocketAddr::from(([0, 0, 0, 0], 0)))?;
-    loop {
-        let stats = Stats::get_stats(&config)?;
-        socket.send_to(&stats.serialise(), config.stats_destination)?;
-        sleep(config.calculate_interval());
-    }
+
+
+    ExitResult::Ok
 }
