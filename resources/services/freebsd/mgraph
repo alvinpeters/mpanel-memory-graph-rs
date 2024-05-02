@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+#
+
+# PROVIDE: mgraph
+# REQUIRE: DAEMON
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name=mgraph
+_binname=mpanel-memory-graph
+rcvar=${name}_enable 
+
+load_rc_config $name
+: ${mgraph_enable:="NO"}
+
+pidfile="/var/run/${name}.pid"
+procname="/usr/local/bin/${_binname}"
+procargs=""
+
+command="/usr/sbin/daemon"
+command_args="-S -u nobody -p ${pidfile} ${procname} ${procargs}"
+
+run_rc_command "$1"
