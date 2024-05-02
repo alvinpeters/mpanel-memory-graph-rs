@@ -11,10 +11,10 @@ use std::time::Duration;
 use sysinfo::{Disks, Networks};
 use crate::error_handler::{ProgramError, ProgramResult};
 
-const STATS_DESTINATION_DEFAULT: String = "110.232.115.0:21000".to_string();
-const MIN_INTERVAL_DEFAULT: String = "5m".to_string();
-const MAX_INTERVAL_DEFAULT: String = "9m".to_string();
-const ROOT_PATH_DEFAULT: PathBuf = PathBuf::from("/");
+const STATS_DESTINATION_DEFAULT: &str = "110.232.115.5:21000";
+const MIN_INTERVAL_DEFAULT: &str = "5m";
+const MAX_INTERVAL_DEFAULT: &str = "9m";
+const ROOT_PATH_DEFAULT: &str = "/";
 
 pub(crate) struct ConfigBuilder {
     stats_destination: Option<String>,
@@ -63,7 +63,7 @@ impl ConfigBuilder {
         opts.optopt("i", "min-interval",
                     "minimum interval between sending statistics, defaults to 5 minutes",
                     "5m");
-        opts.optopt("x", "max-interval",
+        opts.optopt("j", "max-interval",
                     "maximum interval between sending statistics, defaults to 9 minutes",
                     "9m");
         opts.optflag("n", "now",
@@ -139,7 +139,7 @@ impl ConfigBuilder {
     }
 
     pub(crate) fn set_defaults(mut self) -> ConfigBuilder {
-        self.stats_destination = self.stats_destination.or(Some(STATS_DESTINATION_DEFAULT));
+        self.stats_destination = self.stats_destination.or(Some(STATS_DESTINATION_DEFAULT.to_string()));
         self.interface_name = self.interface_name.or_else(|| {
             let networks = Networks::new_with_refreshed_list();
             // Get the first network interface and hope it's the internet interface
@@ -158,8 +158,8 @@ impl ConfigBuilder {
                 None
             }
         });
-        self.min_interval = self.min_interval.or(Some(MIN_INTERVAL_DEFAULT));
-        self.max_interval = self.max_interval.or(Some(MAX_INTERVAL_DEFAULT));
+        self.min_interval = self.min_interval.or(Some(MIN_INTERVAL_DEFAULT.to_string()));
+        self.max_interval = self.max_interval.or(Some(MAX_INTERVAL_DEFAULT.to_string()));
         self
     }
 

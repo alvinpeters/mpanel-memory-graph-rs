@@ -34,8 +34,8 @@ pub(crate) enum ProgramError {
 impl<T> ProgramResult<T> {
     pub(crate) fn unwrap(self) -> T {
         match self {
-            Ok(t) => t,
-            Err(e) => panic!("{e}")
+            ProgramResult::Ok(t) => t,
+            ProgramResult::Err(e) => panic!("{e}")
         }
     }
 }
@@ -62,10 +62,7 @@ impl Into<ExitCode> for ProgramError {
     fn into(self) -> ExitCode {
         match self {
             ProgramError::Error => ExitCode::FAILURE,
-            ProgramError::IoError(e) => ExitCode::from(match e.raw_os_error() {
-                Some(o) => o.into(),
-                None => ExitCode::FAILURE
-            }),
+            ProgramError::IoError(_e) => ExitCode::from(1),
             ProgramError::MissingValueError(_) => ExitCode::FAILURE,
             _ => ExitCode::FAILURE
         }

@@ -20,7 +20,15 @@ fn main() -> ExitResult {
         Some(c) => c.set_defaults().build().unwrap(),
         None => return ExitResult::Ok
     };
+    let mut stats = Stats::get_stats(&config).unwrap();
 
-
+    loop {
+        // Create socket to stats server
+        let socket = UdpSocket::bind(
+            SocketAddr::from(([0, 0, 0, 0], 0))).unwrap();
+        let data = stats.get_and_serialise();
+        socket.send_to(&data, config.stats_destination).unwrap();
+        sleep(config.calculate_interval());
+    }
     ExitResult::Ok
 }
