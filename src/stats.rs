@@ -1,4 +1,5 @@
-use std::io::{BufRead, BufReader, Error, ErrorKind, Result};
+use std::collections::HashMap;
+use std::io::BufRead;
 use std::ops::Index;
 
 use sysinfo::{System, RefreshKind, MemoryRefreshKind, Disks, Networks, MacAddr};
@@ -9,7 +10,7 @@ use crate::error_handler::{ProgramError, ProgramResult};
 pub(crate) struct Stats {
     memory_info: System,
     disks_info: Disks,
-    mac_addr: MacAddr,
+    mac_addr: String,
 }
 
 impl Stats {
@@ -18,13 +19,13 @@ impl Stats {
             RefreshKind::new().with_memory(
                 MemoryRefreshKind::everything()));
         let disks_info = Disks::new_with_refreshed_list();
-        let mac_addr = if let Some((name, data))
+        let mac_addr_original = if let Some((name, data))
             = Networks::new_with_refreshed_list().iter().next() {
             data.mac_address()
         } else {
             MacAddr::UNSPECIFIED
         };
-
+        let mac_addr = mac_addr_original.to_string().replace(":", "");
         ProgramResult::Ok(Stats {
             memory_info,
             disks_info,
@@ -33,19 +34,28 @@ impl Stats {
     }
 
     pub(crate) fn get_and_serialise(&mut self) -> Vec<u8> {
+        // Get used disk space
         self.disks_info.refresh();
-        let disk_used_megabytes = if let Some(s) = self.disks_info.iter().next() {
-            // to megabytes
-            (s.total_space() - s.available_space()) / 1048576
-        } else { 0 };
+        // Got to be a HashMap because of Apple/macOS wanting to be special.
+        let mut disk_used_spaces = HashMap::new();
+        let disks_info = Disks::new_with_refreshed_list();
+        for disk in disks_info.iter() {
+            disk_used_spaces.insert(disk.name(), disk.total_space() - disk.available_space());
+        }
+        // Sum it up.
+        let mut used_space_sum = 0;
+        for (_, used_space) in disk_used_spaces {
+            used_space_sum += used_space;
+        }
+        // Divide to megabytes.
+        let disk_used_megabytes = used_space_sum / 1048576;
+        // Get memory
         self.memory_info.refresh_memory();
         let memory_used_bytes = self.memory_info.used_memory();
-        let memory_used_string = memory_used_bytes.to_string();
-        let disk_used_string = disk_used_megabytes.to_string();
-        let mut output_string = format!("{memory_used_string} {disk_used_string}");
-
-        let mac_address_string = self.mac_addr.to_string().replace(":", "");
-        output_string = format!("{output_string} {mac_address_string}");
+        // Combine strings.
+        let output_string = memory_used_bytes.to_string()
+            + " " + disk_used_megabytes.to_string().as_str()
+            + " " + self.mac_addr.as_str();
         output_string.into_bytes()
     }
 }
